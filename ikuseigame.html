@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ピクセルクリーチャー育成ゲーム</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Press Start 2P', cursive; /* ドット絵風フォント */
+            background-color: #282c34; /* ダーク系の背景 */
+            color: #61dafb; /* 明るいテキスト色 */
+            margin: 20px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); /* ドット絵風フォントの読み込み */
+
+        #gameContainer {
+            background-color: #3a3f4a;
+            border: 5px solid #61dafb;
+            border-radius: 10px;
+            padding: 20px;
+            width: 380px;
+            box-shadow: 0 0 15px rgba(97, 218, 251, 0.5);
+        }
+
+        h1 {
+            color: #ffee00; /* 目を引く黄色 */
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        #creatureDisplay {
+            width: 150px;
+            height: 150px;
+            background-color: #444a55;
+            border: 3px solid #61dafb;
+            border-radius: 5px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4em;
+            color: #fff;
+            overflow: hidden; /* 画像がはみ出さないように */
+        }
+        #creatureImage {
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated; /* ドット絵を鮮明に表示 */
+            transition: transform 0.1s ease-out; /* アクション時のアニメーション */
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+            background-color: #2f333b;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .stat-item {
+            text-align: left;
+        }
+        .stat-bar-container {
+            width: 100%;
+            background-color: #555;
+            border-radius: 3px;
+            height: 10px;
+            overflow: hidden;
+            margin-top: 3px;
+            border: 1px solid #aaa;
+        }
+        .stat-bar {
+            height: 100%;
+            background-color: #4CAF50; /* 緑色のバー */
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+        .stat-bar.hungry { background-color: #ff9800; } /* 空腹時 */
+        .stat-bar.happy { background-color: #2196F3; } /* 幸福時 */
+        .stat-bar.tired { background-color: #f44336; } /* 疲労時 */
+        
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #61dafb;
+            color: #282c34;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #21a1f1;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        #messageBox {
+            background-color: #2f333b;
+            color: #eee;
+            border: 2px dashed #61dafb;
+            padding: 10px;
+            margin-top: 20px;
+            min-height: 40px;
+            font-size: 0.9em;
+        }
+        #evolutionMessage {
+            color: #ffee00;
+            font-size: 1.2em;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ピクセルクリーチャー育成ゲーム</h1>
+    <div id="gameContainer">
+        <div id="creatureDisplay">
+            <img id="creatureImage" src="https://via.placeholder.com/100x100/A0A0A0/FFFFFF?text=?" alt="Creature">
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                空腹度: <span id="hungerValue">50</span>%
+                <div class="stat-bar-container"><div id="hungerBar" class="stat-bar hungry"></div></div>
+            </div>
+            <div class="stat-item">
+                幸福度: <span id="happinessValue">50</span>%
+                <div class="stat-bar-container"><div id="happinessBar" class="stat-bar happy"></div></div>
+            </div>
+            <div class="stat-item">
+                元気度: <span id="energyValue">50</span>%
+                <div class="stat-bar-container"><div id="energyBar" class="stat-bar tired"></div></div>
+            </div>
+            <div class="stat-item">
+                レベル: <span id="levelValue">1</span>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button id="feedBtn"> 餌をあげる</button>
+            <button id="playBtn"> 遊ぶ</button>
+            <button id="sleepBtn"> 寝る</button>
+        </div>
+
+        <div id="messageBox">
+            ピクセルクリーチャー「<span id="creatureName">タマゴ</span>」が生まれました！
+        </div>
+        <div id="evolutionMessage"></div>
+    </div>
+
+    <script>
+        // ピクセルクリーチャーの初期データと進化データ
+        const creatureData = {
+            stage1: {
+                name: "ピクセルスライム",
+                image: "https://via.placeholder.com/100x100/7B68EE/FFFFFF?text=", // スライムの絵文字
+                evolveCondition: { level: 3, happiness: 70 }, // 進化条件
+                evolveTo: "stage2"
+            },
+            stage2: {
+                name: "ピクセルポッド",
+                image: "https://via.placeholder.com/100x100/FFD700/000000?text=", // 植物の絵文字
+                evolveCondition: { level: 5, hunger: 60, energy: 60 },
+                evolveTo: "stage3"
+            },
+            stage3: {
+                name: "ピクセルガーディアン",
+                image: "https://via.placeholder.com/100x100/808080/FFFFFF?text=", // 盾の絵文字
+                // stage3が最終進化と仮定
+            }
+        };
+
+        let creature = {
+            name: "タマゴ",
+            stage: "stage1", // 現在の進化段階
+            hunger: 50,     // 空腹度 (0-100, 低いほど空腹)
+            happiness: 50,  // 幸福度 (0-100, 高いほどハッピー)
+            energy: 50,     // 元気度 (0-100, 高いほど元気)
+            level: 1,       // レベル
+            alive: true     // 生存フラグ
+        };
+
+        // DOM要素の取得
+        const creatureNameDisplay = document.getElementById('creatureName');
+        const creatureImage = document.getElementById('creatureImage');
+        const hungerValueDisplay = document.getElementById('hungerValue');
+        const happinessValueDisplay = document.getElementById('happinessValue');
+        const energyValueDisplay = document.getElementById('energyValue');
+        const levelValueDisplay = document.getElementById('levelValue');
+        const hungerBar = document.getElementById('hungerBar');
+        const happinessBar = document.getElementById('happinessBar');
+        const energyBar = document.getElementById('energyBar');
+        const messageBox = document.getElementById('messageBox');
+        const evolutionMessageDisplay = document.getElementById('evolutionMessage');
+
+        const feedBtn = document.getElementById('feedBtn');
+        const playBtn = document.getElementById('playBtn');
+        const sleepBtn = document.getElementById('sleepBtn');
+
+        // --- ゲームの状態更新と表示 ---
+
+        function updateStatsDisplay() {
+            hungerValueDisplay.textContent = creature.hunger;
+            happinessValueDisplay.textContent = creature.happiness;
+            energyValueDisplay.textContent = creature.energy;
+            levelValueDisplay.textContent = creature.level;
+
+            // バーの幅を更新
+            hungerBar.style.width = creature.hunger + '%';
+            happinessBar.style.width = creature.happiness + '%';
+            energyBar.style.width = creature.energy + '%';
+
+            // バーの色を状態に応じて変化させる
+            hungerBar.classList.toggle('hungry', creature.hunger < 40);
+            happinessBar.classList.toggle('happy', creature.happiness > 60);
+            energyBar.classList.toggle('tired', creature.energy < 40);
+
+            // 生存チェック
+            if (creature.hunger <= 0 || creature.happiness <= 0 || creature.energy <= 0) {
+                if (creature.alive) {
+                    creature.alive = false;
+                    displayMessage(`${creature.name} は力尽きてしまいました... ゲームオーバー。`, 'red');
+                    disableButtons(true);
+                    evolutionMessageDisplay.textContent = ""; // 進化メッセージをクリア
+                    creatureImage.style.opacity = 0.5;
+                }
+            } else {
+                disableButtons(false); // 生きている間はボタンを有効化
+            }
+        }
+
+        function displayMessage(msg, color = '#eee') {
+            messageBox.style.color = color;
+            messageBox.textContent = msg;
+        }
+
+        function updateCreatureAppearance() {
+            const currentStageData = creatureData[creature.stage];
+            if (currentStageData) {
+                creatureNameDisplay.textContent = currentStageData.name;
+                creatureImage.src = currentStageData.image;
+            } else {
+                creatureNameDisplay.textContent = creature.name;
+            }
+            // クリーチャー画像にアニメーション効果を追加（一時的に）
+            creatureImage.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                creatureImage.style.transform = 'scale(1)';
+            }, 100);
+        }
+
+        function disableButtons(disabled) {
+            feedBtn.disabled = disabled;
+            playBtn.disabled = disabled;
+            sleepBtn.disabled = disabled;
+        }
+
+        function checkEvolution() {
+            const currentStageData = creatureData[creature.stage];
+            if (!currentStageData || !currentStageData.evolveCondition) return; // 次の進化がない、または条件がない場合
+
+            const conditions = currentStageData.evolveCondition;
+            let canEvolve = true;
+
+            // 条件を一つずつチェック
+            if (conditions.level && creature.level < conditions.level) canEvolve = false;
+            if (conditions.happiness && creature.happiness < conditions.happiness) canEvolve = false;
+            if (conditions.hunger && creature.hunger < conditions.hunger) canEvolve = false;
+            if (conditions.energy && creature.energy < conditions.energy) canEvolve = false;
+
+            if (canEvolve) {
+                const nextStage = currentStageData.evolveTo;
+                if (nextStage && creatureData[nextStage]) {
+                    creature.stage = nextStage;
+                    creature.level = 1; // 進化でレベルリセット（任意）
+                    creature.hunger = Math.min(100, creature.hunger + 20); // 進化で少し回復（任意）
+                    creature.happiness = Math.min(100, creature.happiness + 30);
+                    creature.energy = Math.min(100, creature.energy + 20);
+
+                    updateCreatureAppearance();
+                    updateStatsDisplay();
+                    evolutionMessageDisplay.textContent = `おめでとう！${creatureData[creature.stage].name} に進化しました！`;
+                    displayMessage(`わーい！新しい姿になったよ！`);
+                    return true; // 進化した
+                }
+            }
+            return false; // 進化しなかった
+        }
+
+        // --- アクション関数 ---
+
+        feedBtn.addEventListener('click', () => {
+            if (!creature.alive) return;
+            creature.hunger = Math.min(100, creature.hunger + 30); // 満腹度上昇
+            creature.happiness = Math.max(0, creature.happiness - 10); // 幸福度微減 (食べ過ぎ？)
+            creature.energy = Math.max(0, creature.energy - 5);   // 少し疲れる
+            creature.level++; // レベルアップ
+            displayMessage(`${creature.name} はモグモグ食べた！`);
+            updateStatsDisplay();
+            checkEvolution();
+        });
+
+        playBtn.addEventListener('click', () => {
+            if (!creature.alive) return;
+            creature.happiness = Math.min(100, creature.happiness + 25); // 幸福度上昇
+            creature.hunger = Math.max(0, creature.hunger - 15); // 空腹度減少
+            creature.energy = Math.max(0, creature.energy - 20); // 元気度減少
+            creature.level++; // レベルアップ
+            displayMessage(`${creature.name} と遊んだ！楽しかったね！`);
+            updateStatsDisplay();
+            checkEvolution();
+        });
+
+        sleepBtn.addEventListener('click', () => {
+            if (!creature.alive) return;
+            creature.energy = Math.min(100, creature.energy + 40); // 元気度大幅回復
+            creature.hunger = Math.max(0, creature.hunger - 10); // 空腹度減少 (寝るとお腹が減る)
+            creature.happiness = Math.min(100, creature.happiness + 5); // 幸福度微増
+            // レベルは上がらない
+            displayMessage(`${creature.name} はぐっすり眠った...`);
+            updateStatsDisplay();
+            // 寝るアクションでは進化しない
+        });
+
+        // --- 時間経過によるステータス変動 ---
+        function timePasses() {
+            if (!creature.alive) return;
+
+            creature.hunger = Math.max(0, creature.hunger - 5);    // 時間でお腹が減る
+            creature.happiness = Math.max(0, creature.happiness - 3); // 時間で飽きる
+            creature.energy = Math.max(0, creature.energy - 7);    // 時間で疲れる
+
+            // ゲームオーバー判定
+            if (creature.hunger <= 0 || creature.happiness <= 0 || creature.energy <= 0) {
+                creature.alive = false;
+                displayMessage(`${creature.name} は力尽きてしまいました... ゲームオーバー。`, 'red');
+                disableButtons(true);
+                evolutionMessageDisplay.textContent = "";
+                creatureImage.style.opacity = 0.5; // 画像を暗くする
+            }
+            updateStatsDisplay();
+            // 時間経過では進化チェックしない
+        }
+
+        // 初期表示とゲーム開始
+        updateCreatureAppearance();
+        updateStatsDisplay();
+        // 5秒ごとに時間経過処理を実行
+        setInterval(timePasses, 5000);
+    </script>
+</body>
+</html>
