@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>JSシンプルリズムゲーム</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+        }
+        #gameArea {
+            width: 800px;
+            height: 300px;
+            background-color: #fff;
+            border: 5px solid #333;
+            position: relative;
+            overflow: hidden; /* ノーツが外に出るのを防ぐ */
+        }
+        .note {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 50px;
+            font-weight: bold;
+            color: white;
+            transition: transform 0.1s; /* ヒット時のアニメーション用 */
+        }
+        .note-f { /* Fキーに対応するノーツ */
+            background-color: #e74c3c; /* 赤系（ドン） */
+            left: 50px; /* 出現位置の調整 */
+        }
+        .note-j { /* Jキーに対応するノーツ */
+            background-color: #3498db; /* 青系（カッ） */
+            left: 150px; /* 出現位置の調整 */
+        }
+        #judgeLine {
+            position: absolute;
+            left: 400px; /* 判定ラインの位置 */
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            background-color: green;
+        }
+        #score {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        /* キーを押したときのエフェクト用クラス */
+        .hit-effect {
+            transform: scale(1.2);
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <h1> JSシンプルリズムゲーム</h1>
+    <p>キー: $\text{F}$ (赤ノーツ), $\text{J}$ (青ノーツ) でタイミングよく叩こう！</p>
+    <div id="gameArea">
+        <div id="judgeLine"></div>
+    </div>
+    <div id="score">Score: 0</div>
+
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const scoreDisplay = document.getElementById('score');
+        const judgeLineX = 400; // 判定ラインのX座標
+        const noteSpeed = 5;    // ノーツの移動速度 (px/フレーム)
+        const hitRange = 25;    // 判定の許容範囲 (px)
+        let score = 0;
+        let notes = [];         // 画面上のノーツを格納する配列
+
+        // --- ゲームデータ（簡単な譜面） ---
+        // { time: ノーツ出現までの時間(ms), key: 叩くキー }
+        const songData = [
+            { time: 1000, key: 'f' },
+            { time: 1500, key: 'j' },
+            { time: 2000, key: 'f' },
+            { time: 2500, key: 'f' },
+            { time: 3000, key: 'j' },
+            { time: 3500, key: 'f' },
+            { time: 4000, key: 'j' },
+            { time: 4500, key: 'j' },
+            { time: 5000, key: 'f' },
+        ];
+        let noteIndex = 0;
+        let startTime = Date.now();
+
+        // --- ノーツの生成 ---
+        function createNote(key) {
+            const note = document.createElement('div');
+            note.className = 'note note-' + key;
+            note.textContent = key.toUpperCase();
+            note.dataset.key = key; // どのキーに対応するかを保存
+            
+            // ノーツを右端から出現させる
+            note.style.right = '0px'; 
+            
+            // Y軸（高さ）の位置をキーに応じて調整
+            note.style.top = (key === 'f' ? 50 : 150) + 'px'; 
+
+            gameArea.appendChild(note);
+            notes.push(note);
+        }
+
+        // --- ゲームループ ---
+        function gameLoop() {
+            const currentTime = Date.now();
+            const elapsedTime = currentTime - startTime;
+
+            // 1. ノーツの出現
+            if (noteIndex < songData.length && elapsedTime >= songData[noteIndex].time) {
+                createNote(songData[noteIndex].key);
+                noteIndex++;
+            }
+
+            // 2. ノーツの移動と判定
+            for (let i = notes.length - 1; i >= 0; i--) {
+                const note = notes[i];
+                let currentRight = parseInt(note.style.right, 10);
+                
+                // ノーツを左に移動させる
+                currentRight += noteSpeed;
+                note.style.right = currentRight + 'px';
+
+                // ノーツの左端位置（X座標）を計算 (右端からどれだけ進んだか)
+                // gameAreaの幅(800) - ノーツの右端からの距離(currentRight) - ノーツの幅(50)
+                const noteX = 800 - currentRight - 50; 
+
+                // 判定ラインを通り過ぎたか（ミス）
+                if (noteX < judgeLineX - 50) { // 判定ラインより左に大きく離れたら
+                    gameArea.removeChild(note);
+                    notes.splice(i, 1);
+                    // TODO: ミス処理、ライフ減少などをここに追加
+                }
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // --- キー入力処理 ---
+        document.addEventListener('keydown', (e) => {
+            const pressedKey = e.key.toLowerCase();
+            if (pressedKey !== 'f' && pressedKey !== 'j') return;
+            
+            // 押しっぱなしによる連続判定を防ぐ
+            if (e.repeat) return; 
+
+            let hit = false;
+
+            // 判定を行う
+            for (let i = notes.length - 1; i >= 0; i--) {
+                const note = notes[i];
+                if (note.dataset.key === pressedKey) {
+                    
+                    // ノーツのX座標を再計算
+                    const currentRight = parseInt(note.style.right, 10);
+                    const noteX = 800 - currentRight - 50; 
+                    
+                    // 判定ラインからの距離の絶対値
+                    const distance = Math.abs(noteX - judgeLineX);
+
+                    if (distance <= hitRange) {
+                        // ヒット成功！
+                        score += 100;
+                        scoreDisplay.textContent = 'Score: ' + score;
+                        hit = true;
+
+                        // ヒットエフェクト（見た目の変化）
+                        note.classList.add('hit-effect'); 
+                        
+                        // ノーツを画面から消す
+                        setTimeout(() => {
+                            if (gameArea.contains(note)) {
+                                gameArea.removeChild(note);
+                            }
+                        }, 100); // わずかな遅延後に削除
+
+                        notes.splice(i, 1);
+                        break; // 最も近いノーツを処理したら終了
+                    }
+                }
+            }
+            
+            // TODO: ヒットしなかった場合の処理（空打ちペナルティなど）
+        });
+
+        // ゲームスタート
+        gameLoop();
+    </script>
+</body>
+</html>
