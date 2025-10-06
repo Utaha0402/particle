@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ピクセルクリーチャー育成ゲーム</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* ドット絵風フォントの読み込み */
+            font-family: 'Press Start 2P', cursive;
+            background-color: #282c34; /* ダーク系の背景 */
+            color: #61dafb; /* 明るいテキスト色 */
+            margin: 20px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Google Fonts 'Press Start 2P'を読み込む */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        #gameContainer {
+            background-color: #3a3f4a;
+            border: 5px solid #61dafb;
+            border-radius: 10px;
+            padding: 20px;
+            width: 380px;
+            box-shadow: 0 0 15px rgba(97, 218, 251, 0.5);
+        }
+
+        h1 {
+            color: #ffee00; /* 目を引く黄色 */
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        #creatureDisplay {
+            width: 150px;
+            height: 150px;
+            background-color: #444a55;
+            border: 3px solid #61dafb;
+            border-radius: 5px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4em;
+            color: #fff;
+            overflow: hidden; /* 画像がはみ出さないように */
+        }
+        #creatureImage {
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated; /* ドット絵を鮮明に表示 */
+            transition: transform 0.1s ease-out; /* アクション時のアニメーション */
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+            background-color: #2f333b;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .stat-item {
+            text-align: left;
+        }
+        .stat-bar-container {
+            width: 100%;
+            background-color: #555;
+            border-radius: 3px;
+            height: 10px;
+            overflow: hidden;
+            margin-top: 3px;
+            border: 1px solid #aaa;
+        }
+        .stat-bar {
+            height: 100%;
+            background-color: #4CAF50; /* 緑色のバー */
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+        .stat-bar.hungry { background-color: #ff9800; } /* 空腹時 */
+        .stat-bar.happy { background-color: #2196F3; } /* 幸福時 */
+        .stat-bar.tired { background-color: #f44336; } /* 疲労時 */
+        
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #61dafb;
+            color: #282c34;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #21a1f1;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        #messageBox {
+            background-color: #2f333b;
+            color: #eee;
+            border: 2px dashed #61dafb;
+            padding: 10px;
+            margin-top: 20px;
+            min-height: 40px;
+            font-size: 0.9em;
+        }
+        #evolutionMessage {
+            color: #ffee00;
+            font-size: 1.2em;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ピクセルクリーチャー育成ゲーム</h1>
+    <div id="gameContainer">
+        <div id="creatureDisplay">
+            <img id="creatureImage" src="" alt="Creature">
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                空腹度: <span id="hungerValue">50</span>%
+                <div class="stat-bar-container"><div id="hungerBar" class="stat-bar hungry"></div></div>
+            </div>
+            <div class="stat-item">
+                幸福度: <span id="happinessValue">50</span>%
+                <div class="stat-bar-container"><div id="happinessBar" class="stat-bar happy"></div></div>
+            </div>
+            <div class="stat-item">
+                元気度: <span id="energyValue">50</span>%
+                <div class="stat-bar-container"><div id="energyBar" class="stat-bar tired"></div></div>
+            </div>
+            <div class="stat-item">
+                レベル: <span id="levelValue">1</span>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button id="feedBtn"> 餌をあげる</button>
+            <button id="playBtn"> 遊ぶ</button>
+            <button id="sleepBtn"> 寝る</button>
+        </div>
+
+        <div id="messageBox">
+            ピクセルクリーチャー「<span id="creatureName">タマゴ</span>」が生まれました！
+        </div>
+        <div id="evolutionMessage"></div>
+    </div>
+
+    <script>
+        // ピクセルクリーチャーの初期データと進化データ
+        const creatureData = {
+            stage0: { // タマゴの状態
+                name: "タマゴ",
+                image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAASHSURBVHgB7Zu/bxtlGMfPz99f900yqY+R0K1gYkG4pMTCiWAg7gHBH8Agf0AQhJ/gg/0BAnYQkCBkQh2YSAQdE4gIEc4I0jTSpJd2R6Q5p9+913d+M9uR5rDtttnz3eF4zO/7vn+f3h9fny/Wv+D/xX9Gf/8t/s/Jj/85/5vVn//91T/f/135/v//91n/R+vP/33q3//r8v3f//3p32/+5v/+qX/d9/3Vd/X/f5x/SgD8r4V/TCD9d8Xv52X/R+Xf52X/K+XflfJ/lvq+VvXf5eXPn5V+1zT1u1vVfpeUf5GUf9eUf2e+P+qW+h2t6ruLyi/hC4n/8pX/j3//9/ufy9+X1/hV/Vfl70v+/+X//N/+/X1//t///f7v8v3f3//90/4p/+F/733/L+T8r/n/Q/7fkv//Vfy/VvW/XvB/l/J+luq/y/WflvI+Lf1xov7uVvU/n/QfT//1d///3f4///v+//d///f/x+Xf3//91f5e//v/r/S//N/7+X/6//z//d/+/v/+73//919X+v/+/++v9f/v//2v+r+//+/P9a///66/1b/+//8/1v/+/3//97f5//v//v9//x/6f1//3//H//f//f///8t//+/+X//H/3f+//z//d//j///5d//9/8t/8X/d/Xf/P//n/z///5/z///5/z///7//7f///7f//f///7f//f///7f//7f//f//f/7//+7//+7//+7///7f//7f//f/7f//f///7f//7f//7f//f///7f//7f//7f//7f//7f//7f///7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f//7f/
