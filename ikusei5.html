@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>数値成長クリーチャー育成ゲーム</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 20px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        #gameContainer {
+            background-color: #ffffff;
+            border: 3px solid #2980b9;
+            border-radius: 10px;
+            padding: 20px;
+            width: 380px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        #creatureDisplay {
+            width: 150px;
+            height: 150px;
+            background-color: #eaf2f8;
+            border: 2px solid #3498db;
+            border-radius: 5px;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 1em;
+            color: #000;
+        }
+        #growthNumber { /* 成長度を示す大きな数字 */
+            font-size: 4em;
+            font-weight: bold;
+            color: #e74c3c; /* 成長を目立たせる色 */
+            transition: transform 0.1s ease-out; /* アクション時のアニメーション */
+            line-height: 1.1;
+        }
+        #creatureNameDisplay {
+            font-size: 1.2em;
+            margin-top: 5px;
+            color: #2c3e50;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .stat-item {
+            text-align: left;
+            font-size: 0.9em;
+        }
+        .stat-bar-container {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 3px;
+            height: 10px;
+            overflow: hidden;
+            margin-top: 3px;
+        }
+        .stat-bar {
+            height: 100%;
+            background-color: #4CAF50; 
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+        .stat-bar.hungry { background-color: #ff9800; } 
+        .stat-bar.happy { background-color: #2196F3; } 
+        .stat-bar.tired { background-color: #f44336; } 
+        
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background-color: #aaa;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #messageBox {
+            background-color: #ecf0f1;
+            color: #333;
+            border: 1px solid #bdc3c7;
+            padding: 10px;
+            margin-top: 20px;
+            min-height: 40px;
+            font-size: 0.9em;
+            border-radius: 5px;
+        }
+        #evolutionMessage {
+            color: #e67e22;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>数値成長クリーチャー育成ゲーム</h1>
+    <div id="gameContainer">
+        <div id="creatureDisplay">
+            <div id="growthNumber">0</div> 
+            <div id="creatureNameDisplay">タマゴ</div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                空腹度: <span id="hungerValue">50</span>%
+                <div class="stat-bar-container"><div id="hungerBar" class="stat-bar hungry"></div></div>
+            </div>
+            <div class="stat-item">
+                幸福度: <span id="happinessValue">50</span>%
+                <div class="stat-bar-container"><div id="happinessBar" class="stat-bar happy"></div></div>
+            </div>
+            <div class="stat-item">
+                元気度: <span id="energyValue">50</span>%
+                <div class="stat-bar-container"><div id="energyBar" class="stat-bar tired"></div></div>
+            </div>
+            <div class="stat-item">
+                世代: <span id="levelValue">1</span>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button id="feedBtn"> 餌をあげる</button>
+            <button id="playBtn"> 遊ぶ</button>
+            <button id="sleepBtn"> 寝る</button>
+        </div>
+
+        <div id="messageBox">
+            クリーチャーの「<span id="creatureName">タマゴ</span>」が生まれました！
+        </div>
+        <div id="evolutionMessage"></div>
+    </div>
+
+    <script>
+        // クリーチャーの進化データ
+        const creatureData = {
+            stage0: { 
+                name: "タマゴ",
+                maxGrowth: 10, // このステージでの最大成長度
+                evolveTo: "stage1"
+            },
+            stage1: {
+                name: "ノーマルスライム",
+                maxGrowth: 25, 
+                evolveTo: "stage2"
+            },
+            stage2: {
+                name: "メガドラゴン",
+                maxGrowth: 50, 
+                evolveTo: "stage3"
+            },
+            stage3: {
+                name: "アルティメット",
+                maxGrowth: 999, // 最終段階は大きく
+            }
+        };
+
+        let creature = {
+            name: "タマゴ",
+            stage: "stage0", // 初期段階
+            hunger: 50,     // 空腹度 (0-100, 低いほど空腹)
+            happiness: 50,  // 幸福度 (0-100, 高いほどハッピー)
+            energy: 50,     // 元気度 (0-100, 高いほど元気)
+            generation: 1,  // 世代 (前の「レベル」に相当)
+            growth: 0,      // 成長度 (0からスタートし、maxGrowthで進化)
+            alive: true     
+        };
+
+        // DOM要素の取得
+        const creatureNameDisplay = document.getElementById('creatureNameDisplay');
+        const growthNumberDisplay = document.getElementById('growthNumber');
+        const hungerValueDisplay = document.getElementById('hungerValue');
+        const happinessValueDisplay = document.getElementById('happinessValue');
+        const energyValueDisplay = document.getElementById('energyValue');
+        const levelValueDisplay = document.getElementById('levelValue');
+        const hungerBar = document.getElementById('hungerBar');
+        const happinessBar = document.getElementById('happinessBar');
+        const energyBar = document.getElementById('energyBar');
+        const messageBox = document.getElementById('messageBox');
+        const evolutionMessageDisplay = document.getElementById('evolutionMessage');
+
+        const feedBtn = document.getElementById('feedBtn');
+        const playBtn = document.getElementById('playBtn');
+        const sleepBtn = document.getElementById('sleepBtn');
+
+        // --- ゲームの状態更新と表示 ---
+
+        function updateStatsDisplay() {
+            // ステータス値を0から100の間にクランプ
+            creature.hunger = Math.min(100, Math.max(0, creature.hunger));
+            creature.happiness = Math.min(100, Math.max(0, creature.happiness));
+            creature.energy = Math.min(100, Math.max(0, creature.energy));
+
+            // 画面表示を更新
+            growthNumberDisplay.textContent = creature.growth; // **成長度を中央に表示**
+            creatureNameDisplay.textContent = creatureData[creature.stage].name; // **クリーチャー名を中央に表示**
+            
+            hungerValueDisplay.textContent = creature.hunger;
+            happinessValueDisplay.textContent = creature.happiness;
+            energyValueDisplay.textContent = creature.energy;
+            levelValueDisplay.textContent = creature.generation; // 世代を表示
+
+            // バーの幅を更新
+            hungerBar.style.width = creature.hunger + '%';
+            happinessBar.style.width = creature.happiness + '%';
+            energyBar.style.width = creature.energy + '%';
+
+            // 生存チェック
+            if (creature.hunger <= 0 || creature.happiness <= 0 || creature.energy <= 0) {
+                if (creature.alive) {
+                    creature.alive = false;
+                    displayMessage(` ${creatureData[creature.stage].name} は力尽きてしまいました... ゲームオーバー。`, 'red');
+                    disableButtons(true);
+                    evolutionMessageDisplay.textContent = ""; 
+                    growthNumberDisplay.style.opacity = 0.5; 
+                }
+            } else {
+                disableButtons(false); 
+            }
+        }
+
+        function displayMessage(msg, color = '#333') {
+            messageBox.style.color = color;
+            messageBox.textContent = msg;
+        }
+
+        function checkEvolution() {
+            const currentStageData = creatureData[creature.stage];
+            if (!currentStageData || !currentStageData.evolveTo) return; 
+
+            // 成長度が最大成長度に達したら進化
+            if (creature.growth >= currentStageData.maxGrowth) {
+                const nextStage = currentStageData.evolveTo;
+                
+                if (nextStage && creatureData[nextStage]) {
+                    // --- 進化処理 ---
+                    creature.stage = nextStage;
+                    creature.generation++; // 世代を進める
+                    creature.growth = 0;   // **成長度を0にリセット**
+
+                    // 進化ボーナスとしてステータスを回復
+                    creature.hunger = Math.min(100, creature.hunger + 30); 
+                    creature.happiness = Math.min(100, creature.happiness + 40);
+                    creature.energy = Math.min(100, creature.energy + 30);
+
+                    updateStatsDisplay();
+                    evolutionMessageDisplay.textContent = ` 世代 ${creature.generation} へ！${creatureData[creature.stage].name} に進化しました！`;
+                    displayMessage(`新しい姿になったよ！また最初から育てよう！`);
+                }
+            }
+        }
+
+        // --- アクション関数 ---
+
+        feedBtn.addEventListener('click', () => {
+            if (!creature.alive) return;
+            creature.hunger += 30; 
+            creature.happiness -= 10; 
+            creature.energy -= 5;   
+            creature.growth++; // **成長度が増える**
+            displayMessage(`${creatureData[creature.stage].name} はモグモグ食べた！成長度 +1`);
+            updateStatsDisplay();
+            checkEvolution();
+        });
+
+        playBtn.addEventListener('click', () => {
+            if (!creature.alive) return;
+            creature.happiness += 25; 
+            creature.hunger -= 15; 
+            creature.energy -= 20; 
+            creature.growth += 2; // **成長度が増える (遊びは成長しやすい)**
+            displayMessage(`${creatureData[creature.stage].name} と遊んだ！成長度 +2`);
+            updateStatsDisplay();
+            checkEvolution();
+        });
+
+        sleepBtn.addEventListener('click', () => {
+            if (!creature.alive) return;
+            creature.energy += 40; 
+            creature.hunger -= 10; 
+            creature.happiness += 5; 
+            // 寝ても成長度は増えない
+            displayMessage(`${creatureData[creature.stage].name} はぐっすり眠った...`);
+            updateStatsDisplay();
+        });
+
+        // --- 時間経過によるステータス変動 ---
+        function timePasses() {
+            if (!creature.alive) return;
+
+            creature.hunger -= 5;    
+            creature.happiness -= 3; 
+            creature.energy -= 7;    
+
+            updateStatsDisplay();
+        }
+
+        // 初期表示とゲーム開始
+        updateStatsDisplay();
+        // 5秒ごとに時間経過処理を実行
+        setInterval(timePasses, 5000);
+    </script>
+</body>
+</html>
