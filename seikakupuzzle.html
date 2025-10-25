@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>直感でわかる性格診断パズル</title>
+    <style>
+        /* --- CSS: スタイル設定 --- */
+        body {
+            font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #app-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #4a90e2;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #4a90e2;
+            padding-bottom: 10px;
+        }
+
+        /* 質問エリア */
+        #quiz-area {
+            text-align: center;
+        }
+
+        #question-text {
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            color: #555;
+            min-height: 40px; /* テキストの揺れを防ぐ */
+        }
+
+        /* 選択肢ボタンのコンテナ */
+        #options-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .option-button {
+            background-color: #e0eafb;
+            color: #4a90e2;
+            padding: 15px;
+            border: 2px solid #4a90e2;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s, transform 0.2s;
+            font-weight: bold;
+        }
+
+        .option-button:hover {
+            background-color: #4a90e2;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* 結果表示エリア */
+        #result-area {
+            text-align: center;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border: 1px dashed #4a90e2;
+            border-radius: 10px;
+        }
+
+        #result-area h2 {
+            color: #4CAF50; /* 緑色 */
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        #result-type {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #d9534f; /* 赤色 */
+            margin-bottom: 10px;
+        }
+
+        #result-analysis {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        /* 進行状況バー */
+        #progress-bar {
+            height: 10px;
+            background-color: #ccc;
+            border-radius: 5px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <h1>直感でわかる性格診断パズル</h1>
+
+        <div id="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        <div id="quiz-area">
+            <div id="question-text">診断を開始します。「スタート」ボタンを押してください。</div>
+            
+            <div id="options-container">
+                <button id="start-button" class="option-button" onclick="startQuiz()">スタート</button>
+            </div>
+        </div>
+
+        <div id="result-area" style="display: none;">
+            <h2>✨ 診断結果 ✨</h2>
+            <div id="result-type"></div>
+            <div id="result-analysis"></div>
+            <button class="option-button" style="margin-top: 20px;" onclick="location.reload()">もう一度診断する</button>
+        </div>
+    </div>
+
+    <script>
+        // --- JavaScript: ロジック設定 ---
+
+        // DOM要素の取得
+        const quizArea = document.getElementById('quiz-area');
+        const resultArea = document.getElementById('result-area');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const progressFill = document.getElementById('progress-fill');
+        const resultType = document.getElementById('result-type');
+        const resultAnalysis = document.getElementById('result-analysis');
+
+        // 診断の質問データ
+        const questions = [
+            {
+                text: "Q1. 今、最も強く惹かれる「色」はどちらですか？",
+                options: [
+                    { text: "青（冷静・知性）", value: "C" }, // C: Cool/Calculative (論理・冷静) に関連付け
+                    { text: "赤（情熱・行動）", value: "E" }  // E: Emotional/Energetic (感情・行動) に関連付け
+                ]
+            },
+            {
+                text: "Q2. 落ち着くと感じる「図形」はどちらですか？",
+                options: [
+                    { text: "丸（調和・柔軟性）", value: "I" },  // I: Imaginative/Intuitive (直感・想像力) に関連付け
+                    { text: "四角（安定・計画性）", value: "S" } // S: Stable/Systematic (計画・安定) に関連付け
+                ]
+            },
+            {
+                text: "Q3. 次の数列で、あなたが「続き」として選ぶのは？",
+                // 1→2→4→7→11 (差が+1, +2, +3, +4...)
+                options: [
+                    { text: "16", value: "S" }, // S: Systematic (ルール順守、計算) に関連付け
+                    { text: "13", value: "I" }  // I: Intuitive (直感的な連想、非論理的な飛躍) に関連付け
+                ]
+            }
+        ];
+
+        let currentQuestionIndex = 0; // 現在の質問番号
+        let userAnswers = [];         // ユーザーの回答を保存する配列
+
+        // 性格タイプと分析結果の定義
+        // 例: 最初の文字 (C/E) は論理/感情、次の文字 (I/S) は直感/安定 を表すとする
+        const personalityTypes = {
+            "CI": { type: "インテリジェント・イノベーター", analysis: "あなたは**冷静な論理**と**豊かな直感**を併せ持つ、革新的なアイデアマンです。物事を深く考え、新しい解決策を生み出すことに喜びを感じます。たまに現実から離れすぎないように注意が必要です。" },
+            "CS": { type: "ロジカル・プランナー", analysis: "あなたは**冷静かつ計画的**な、非常に論理的なタイプです。目標達成に向けて着実にステップを踏み、感情に流されることはありません。周りからは「頼れるリーダー」と見られますが、もう少し柔軟性を持つと完璧です。" },
+            "EI": { type: "エモーショナル・アーティスト", analysis: "あなたは**情熱的な感情**と**自由な直感**で動く、創造性に溢れたアーティストタイプです。常に新しい刺激を求め、人との共感を大切にします。感情の波が激しいのが弱点ですが、そのエネルギーこそが魅力です。" },
+            "ES": { type: "エネルギッシュ・リアリスト", analysis: "あなたは**行動力**があり、**現実的かつ安定**を求めるタイプです。人と関わることを好み、具体的な結果を出すことに長けています。情熱的ですが、直感よりも目の前の事実を重視するため、冒険は控えめかもしれません。" }
+        };
+
+        /**
+         * 診断開始ボタンをクリックしたときの処理
+         */
+        function startQuiz() {
+            // 回答とインデックスをリセット
+            userAnswers = [];
+            currentQuestionIndex = 0;
+            // 最初の質問を表示
+            displayQuestion();
+        }
+
+        /**
+         * 質問と選択肢をDOMに表示する
+         */
+        function displayQuestion() {
+            // 現在の質問が全て終了したら結果表示へ
+            if (currentQuestionIndex >= questions.length) {
+                showResult();
+                return;
+            }
+
+            const q = questions[currentQuestionIndex];
+            
+            // 質問文を更新
+            questionText.textContent = q.text;
+            
+            // 進行状況バーを更新
+            const progress = (currentQuestionIndex / questions.length) * 100;
+            progressFill.style.width = `${progress}%`;
+            
+            // 選択肢コンテナを空にする
+            optionsContainer.innerHTML = '';
+
+            // 選択肢ボタンを作成し、追加
+            q.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = option.text;
+                // ボタンにクリックイベントを設定
+                button.onclick = () => handleAnswer(option.value);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        /**
+         * ユーザーが回答を選択したときの処理
+         * @param {string} value - 選択されたオプションの値 (C, E, I, Sなど)
+         */
+        function handleAnswer(value) {
+            // 回答を保存
+            userAnswers.push(value);
+            
+            // 次の質問へ進む
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        /**
+         * 最終的な結果を表示する
+         */
+        function showResult() {
+            // 進行状況バーを100%にする
+            progressFill.style.width = '100%';
+            
+            // 質問エリアを非表示にし、結果エリアを表示
+            quizArea.style.display = 'none';
+            resultArea.style.display = 'block';
+
+            // ユーザーの回答を結合してタイプキーを作成 (例: ["E", "I", "S"] → "EI")
+            // 2問目までの結果（例: 最初の2文字）を使ってタイプを決定
+            const typeKey = userAnswers.slice(0, 2).join('');
+
+            // タイプを決定し、分析結果を取得
+            const result = personalityTypes[typeKey];
+
+            // 結果をDOMに反映
+            if (result) {
+                resultType.textContent = result.type;
+                resultAnalysis.textContent = result.analysis;
+            } else {
+                // 予期せぬキーの場合の処理
+                resultType.textContent = "診断不能";
+                resultAnalysis.textContent = "回答結果に誤りがありました。もう一度お試しください。";
+            }
+        }
+    </script>
+
+</body>
+</html>
