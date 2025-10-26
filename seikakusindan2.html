@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>直感で導く：あなたの潜在能力タイプ診断</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS: スタイル設定 (モノトーンデザイン版) --- */
+        :root {
+            /* モノトーンカラースキーム */
+            --primary-dark: #212121;      /* 濃いチャコールグレー (メインテキスト) */
+            --primary-medium: #424242;    /* 中間グレー (見出し、ボタンボーダー) */
+            --primary-light: #F5F5F5;     /* 非常に明るいグレー (背景、ボタン背景) */
+            --card-background: #FFFFFF;   /* カード背景 */
+            --accent-color: #616161;      /* 落ち着いたダークグレー (アクセント) */
+            --border-color: #E0E0E0;      /* 薄いグレー (区切り線) */
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Noto Sans JP', 'Roboto', sans-serif; /* サンセリフ体でモダンに */
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #app-container {
+            background-color: var(--card-background);
+            padding: 40px;
+            border-radius: 12px; /* 角を丸く */
+            box-shadow: 0 4px 20px var(--shadow-color); /* 控えめな影 */
+            width: 100%;
+            max-width: 700px; /* 少しコンパクトに */
+            border: 1px solid var(--border-color);
+        }
+
+        h1 {
+            color: var(--primary-medium);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+            border-bottom: 2px solid var(--border-color); /* 細い線 */
+            padding-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        /* 質問エリア */
+        #quiz-area {
+            text-align: center;
+        }
+
+        #question-text {
+            font-size: 1.4em;
+            margin-bottom: 35px;
+            color: var(--primary-dark);
+            min-height: 60px;
+            font-weight: 700;
+            line-height: 1.7;
+        }
+
+        /* 選択肢ボタンのコンテナ */
+        #options-container {
+            display: grid;
+            grid-template-columns: 1fr; /* 縦に並べることで、より洗練された印象に */
+            gap: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .option-button {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 20px;
+            border: 1px solid var(--border-color); /* 細いボーダー */
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.2s ease;
+            font-weight: 400; /* 太字すぎない */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .option-button:hover {
+            background-color: var(--accent-color); /* ダークグレーに */
+            color: var(--card-background); /* 白文字 */
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
+        /* 選択済みボタンのスタイル */
+        .option-button.selected {
+            background-color: var(--primary-medium);
+            color: var(--card-background);
+            border-color: var(--primary-medium);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 制御ボタン (戻る/次へ) */
+        #control-buttons {
+            display: flex;
+            justify-content: flex-start; /* 戻るボタンを左に寄せる */
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        #control-buttons button {
+            padding: 12px 25px;
+            font-weight: 700;
+            border-radius: 6px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+        }
+
+        #back-button {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            border: 1px solid var(--accent-color);
+        }
+
+        #back-button:hover {
+            background-color: #E0E0E0;
+        }
+        
+        #back-button:not([style*="visible"]) {
+            opacity: 0; /* 非表示の時は透明 */
+            pointer-events: none; /* クリック無効 */
+        }
+
+        /* 結果表示エリア */
+        #result-area {
+            text-align: center;
+            padding: 35px;
+            background-color: var(--primary-light);
+            border: 2px solid var(--accent-color);
+            border-radius: 10px;
+        }
+
+        #result-area h2 {
+            color: var(--primary-medium);
+            font-size: 2.4em;
+            margin-bottom: 25px;
+            letter-spacing: 0.1em;
+        }
+
+        #result-type {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 30px;
+        }
+
+        #result-summary {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: var(--card-background);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 1.05em;
+            line-height: 1.8;
+            text-align: left;
+        }
+
+        #result-analysis {
+            font-size: 1.1em;
+            line-height: 1.9;
+            text-align: left;
+            margin-top: 30px;
+            color: var(--primary-dark);
+        }
+
+        /* 進行状況バー */
+        #progress-bar {
+            height: 10px;
+            background-color: var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary-medium); /* 中間グレーを使用 */
+            border-radius: 5px;
+            transition: width 0.4s ease-in-out;
+        }
+
+        /* 再診断ボタン */
+        .restart-button {
+            margin-top: 30px !important;
+            width: 100%;
+            background-color: var(--primary-dark) !important;
+            color: var(--card-background) !important;
+            border: none !important;
+            padding: 18px !important;
+            font-size: 1.15em !important;
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .restart-button:hover {
+            background-color: var(--accent-color) !important;
+            transform: translateY(-3px) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <h1>🧠 直感で導く：あなたの潜在能力タイプ診断</h1>
+
+        <div id="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        <div id="quiz-area">
+            <div id="question-text">診断を開始します。「スタート」ボタンを押してください。</div>
+            
+            <div id="options-container">
+                <button id="start-button" class="option-button" onclick="startQuiz()">診断スタート！</button>
+            </div>
+            
+            <div id="control-buttons" style="display: none;">
+                <button id="back-button" onclick="goBack()">◀ 前の質問に戻る</button>
+            </div>
+        </div>
+
+        <div id="result-area" style="display: none;">
+            <h2>✨ 診断結果 ✨</h2>
+            <div id="result-type"></div>
+            <div id="result-summary"></div>
+            <div id="result-analysis"></div>
+            <button class="option-button restart-button" onclick="location.reload()">もう一度診断する</button>
+        </div>
+    </div>
+
+    <script>
+        // --- JavaScript: ロジック設定 ---
+
+        // DOM要素の取得
+        const quizArea = document.getElementById('quiz-area');
+        const resultArea = document.getElementById('result-area');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const progressFill = document.getElementById('progress-fill');
+        const controlButtons = document.getElementById('control-buttons');
+        const backButton = document.getElementById('back-button');
+        const resultType = document.getElementById('result-type');
+        const resultSummary = document.getElementById('result-summary');
+        const resultAnalysis = document.getElementById('result-analysis');
+
+        // 診断の質問データ (全20問)
+        const questions = [
+            { text: "Q1. 週末の計画を立てるとき、どちらに惹かれますか？", options: [{ text: "綿密なスケジュールを組む", value: "S" }, { text: "何も決めずに、その場の気分で動く", value: "I" }] },
+            { text: "Q2. 友人との会話では、どちらが多いですか？", options: [{ text: "積極的に発言し、議論をリードする", value: "A" }, { text: "聞き役に回り、発言は必要な時だけにする", value: "R" }] },
+            { text: "Q3. 新しい趣味を始めるとき、どちらに惹かれますか？", options: [{ text: "基礎をしっかり学べる入門書", value: "S" }, { text: "とりあえず始めて、自分で試行錯誤する", value: "I" }] },
+            { text: "Q4. トラブルが発生したとき、最初にすることは？", options: [{ text: "すぐに状況を把握し、対策を講じる", value: "A" }, { text: "少し立ち止まり、深く考える時間を持つ", value: "R" }] },
+            { text: "Q5. 仕事（作業）環境は、どちらが好みですか？", options: [{ text: "整理整頓され、視界にノイズがない", value: "S" }, { text: "アイデアや資料が広がり、活発な状態", value: "I" }] },
+            
+            // --- パズル（直感）要素の多様化 ---
+            { text: "Q6. 【直感パズル】「星、月、星、月、星...」次に続くと思う図形は？", options: [{ text: "星", value: "S" }, { text: "太陽", value: "I" }] }, 
+            { text: "Q7. 【直感パズル】「青、緑、黄、橙、赤...」と続いた後、違和感なく感じる色は？", options: [{ text: "紫", value: "S" }, { text: "金色", value: "I" }] }, 
+            { text: "Q8. 【直感パズル】「1, 4, 9, 16...」次に続くと思う数字は？", options: [{ text: "25", value: "S" }, { text: "20", value: "I" }] }, 
+            // --- パズル（直感）要素 終了 ---
+
+            { text: "Q9. 計画通りに進まないとき、気持ちはどうなりますか？", options: [{ text: "イライラするが、すぐに修正案を考える", value: "S" }, { text: "面白がる。新しい展開だと前向きに捉える", value: "I" }] },
+            { text: "Q10. 新しい人を評価するとき、どこを重視しますか？", options: [{ text: "過去の実績と具体的なスキル", value: "S" }, { text: "隠された可能性や潜在的な才能", value: "I" }] },
+            { text: "Q11. グループの決定で、あなたの役割は？", options: [{ text: "結論を出し、実行を促す", value: "A" }, { text: "メンバーの意見をまとめ、調和を保つ", value: "R" }] },
+            { text: "Q12. 感情的な対立が起きたとき、どちらを選びますか？", options: [{ text: "すぐに介入し、問題を解決する", value: "A" }, { text: "一歩引いて、冷静に状況を分析する", value: "R" }] },
+            { text: "Q13. 失敗したとき、最も強く感じるのは？", options: [{ text: "次はどうするかという対策の必要性", value: "A" }, { text: "何が原因だったのかという探求の必要性", value: "R" }] },
+            { text: "Q14. 連絡手段として、どちらを好みますか？", options: [{ text: "電話や直接会話 (即時性)", value: "A" }, { text: "メールやチャット (文章での整理)", value: "R" }] },
+            { text: "Q15. 夢や目標を語るとき、どちらの視点が多いですか？", options: [{ text: "達成するための具体的なプロセス", value: "S" }, { text: "実現したときの感情や世界観", value: "I" }] },
+            { text: "Q16. 人前で意見を述べるのは得意ですか？", options: [{ text: "自信を持って、はっきりと話す", value: "A" }, { text: "準備ができていれば話せるが、できれば避けたい", value: "R" }] },
+            { text: "Q17. 締め切りが近いとき、集中力は？", options: [{ text: "高まり、計画通りに加速する", value: "S" }, { text: "プレッシャーを感じ、新しいアイデアに逃げる", value: "I" }] },
+            { text: "Q18. 友人に弱音を吐くのは得意ですか？", options: [{ text: "問題解決のために話すことはある", value: "A" }, { text: "あまり得意ではなく、自分で処理したい", value: "R" }] },
+            { text: "Q19. 自分の感情は、普段どうですか？", options: [{ text: "一定で、あまり波がない", value: "S" }, { text: "豊かで、状況によって大きく変化する", value: "I" }] },
+            { text: "Q20. あなたの行動の動機は、主にどちらですか？", options: [{ text: "目標達成と効率", value: "A" }, { text: "探求心と好奇心", value: "R" }] }
+        ];
+
+        let currentQuestionIndex = 0; // 現在の質問番号
+        let userAnswers = [];         // ユーザーの回答履歴を保存
+
+        // 性格タイプと分析結果の定義
+        const personalityTypes = {
+            "SA_strong": { type: "✨ 完璧主義の司令官", analysis: "あなたは**計画性**と**行動力**が極めて高い、稀有なリーダータイプです。論理的かつ迅速に実行に移し、結果を出します。厳格さが時にプレッシャーとなるため、柔軟な姿勢を意識すると良いでしょう。" },
+            "SR_strong": { type: "💎 緻密な戦略家", analysis: "あなたは**安定性**を基盤に、**深い内省**を重ねて行動する学者肌の戦略家です。感情に流されず、リスクを徹底的に分析してから動き出すため、下した判断は非常に正確です。チームでは、あなたの分析力と準備の周到さが、不可欠な強みとなります。" },
+            "IA_strong": { type: "🚀 情熱のイノベーター", analysis: "あなたは**直感**と**行動力**が結びついた、変化の旗振り役です。新しいアイデアが次々と湧き出し、それを実行に移すエネルギーを持っています。発想力と実行力は、停滞した状況を打ち破る最大の武器となります。" },
+            "IR_strong": { type: "🌌 孤高の夢想家", analysis: "あなたは**直感**を羅針盤に、**内省的**な世界を探求する夢想家です。日常の裏に隠された可能性を見抜く才能があり、独創的な思考プロセスを持っています。独自のアイデアは、世界を静かに、しかし確実に変えていく力を持っています。" },
+            "SA_balance": { type: "⚖️ 実務的な推進者", analysis: "あなたは、安定を求めながらも行動に移す**実践者**です。計画は立てますが、状況に応じて修正を加える柔軟性を持っています。バランスの良さが魅力であり、多くのチームで中核的な役割を果たします。" },
+            "SR_balance": { type: "🕊️ 穏やかな探求者", analysis: "あなたは、内省を重視しつつも、必要な場面では安定的な行動を選ぶ**調和型**です。急な変化は好みませんが、じっくり時間をかけて物事を探求し、知識を深めていくことを得意としています。" },
+            "IA_balance": { type: "⚡ 柔軟なアイデアマン", analysis: "あなたは、直感を活かしつつも、適切なタイミングで行動を起こす**機転の利く**タイプです。様々なアイデアを試し、失敗を恐れません。あなたの周りには常に活気があり、新しいチャレンジが絶えません。" },
+            "IR_balance": { type: "🎨 感受性豊かな表現者", analysis: "あなたは、内省を通じて直感的なひらめきを得る**感受性の高い**タイプです。芸術的なセンスや、人の気持ちを察する能力に優れています。独自の視点を持ちながらも、周囲の空気を読むことができる繊細さを持っています。" }
+        };
+
+        /**
+         * 診断開始ボタンをクリックしたときの処理
+         */
+        function startQuiz() {
+            userAnswers = [];
+            currentQuestionIndex = 0;
+            displayQuestion();
+            controlButtons.style.display = 'flex';
+        }
+
+        /**
+         * 質問と選択肢をDOMに表示する
+         */
+        function displayQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                showResult();
+                return;
+            }
+
+            const q = questions[currentQuestionIndex];
+            
+            // ここを修正: 「Q1/20」から「Q1.」へ
+            questionText.textContent = `Q${currentQuestionIndex + 1}. ${q.text}`;
+            
+            const progress = (currentQuestionIndex / questions.length) * 100;
+            progressFill.style.width = `${progress}%`;
+            
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = option.text;
+                button.onclick = () => handleAnswer(option.value);
+                optionsContainer.appendChild(button);
+                
+                // 既に回答済みの場合は、そのボタンをハイライト
+                if (userAnswers[currentQuestionIndex] === option.value) {
+                    button.classList.add('selected'); 
+                } else {
+                    button.classList.remove('selected'); 
+                }
+            });
+            
+            // 戻るボタンの表示/非表示を制御
+            backButton.style.visibility = currentQuestionIndex > 0 ? 'visible' : 'hidden';
+        }
+
+        /**
+         * ユーザーが回答を選択したときの処理
+         */
+        function handleAnswer(value) {
+            userAnswers[currentQuestionIndex] = value;
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+        
+        /**
+         * 戻るボタンをクリックしたときの処理
+         */
+        function goBack() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        /**
+         * 最終的な結果を表示する
+         */
+        function showResult() {
+            progressFill.style.width = '100%';
+            
+            // 最終集計
+            let score = { S: 0, I: 0, A: 0, R: 0 };
+            userAnswers.forEach(answer => {
+                score[answer] += 1;
+            });
+
+            quizArea.style.display = 'none';
+            controlButtons.style.display = 'none';
+            resultArea.style.display = 'block';
+
+            // 1. 各軸のスコアを取得
+            const sScore = score.S;
+            const iScore = score.I;
+            const aScore = score.A;
+            const rScore = score.R;
+
+            const sDominant = sScore - iScore; 
+            const aDominant = aScore - rScore; 
+            
+            // 2. 最終タイプキーの決定ロジック
+            let firstAxisPrefix = ''; 
+            let secondAxisPrefix = ''; 
+            let axisSuffix = ''; 
+
+            const threshold = 3; // 20問中3点差を優位性の基準とする
+
+            // S/I軸の判定
+            if (sDominant >= threshold) {
+                firstAxisPrefix = 'S';
+            } else if (sDominant <= -threshold) {
+                firstAxisPrefix = 'I';
+            } else {
+                firstAxisPrefix = (sScore >= iScore ? 'S' : 'I'); 
+            }
+
+            // A/R軸の判定
+            if (aDominant >= threshold) {
+                secondAxisPrefix = 'A';
+            } else if (aDominant <= -threshold) {
+                secondAxisPrefix = 'R';
+            } else {
+                secondAxisPrefix = (aScore >= rScore ? 'A' : 'R'); 
+            }
+
+            // 強さのサフィックスを決定
+            if ((Math.abs(sDominant) >= threshold) && (Math.abs(aDominant) >= threshold)) {
+                axisSuffix = '_strong';
+            } else {
+                axisSuffix = '_balance';
+            }
+            
+            const finalKey = firstAxisPrefix + secondAxisPrefix + axisSuffix;
+            
+            // 4. 結果表示
+            const result = personalityTypes[finalKey] || personalityTypes['SA_balance'];
+
+
+            resultType.textContent = result.type;
+
+            resultSummary.innerHTML = `
+                <p><strong>【安定/直感】軸:</strong> S (計画/安定) ${sScore}点 vs I (直感/革新) ${iScore}点</p>
+                <p><strong>【行動/内省】軸:</strong> A (行動/断言) ${aScore}点 vs R (内省/控えめ) ${rScore}点</p>
+            `;
+
+            resultAnalysis.innerHTML = `
+                <p><strong>【${result.type}】の分析:</strong></p>
+                <p>${result.analysis}</p>
+                <p>※本診断はエンターテイメント目的です。あなたの深層心理を探るヒントとしてお楽しみください。</p>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+             quizArea.style.display = 'block';
+             resultArea.style.display = 'none';
+        });
+    </script>
+
+</body>
+</html>
