@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>直感でわかる性格診断パズル</title>
+    <style>
+        /* --- CSS: スタイル設定 (700pxから800pxに拡張) --- */
+        body {
+            font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #app-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px; /* 幅を広げました */
+        }
+
+        h1 {
+            color: #4a90e2;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #4a90e2;
+            padding-bottom: 10px;
+        }
+
+        /* 質問エリア */
+        #quiz-area {
+            text-align: center;
+        }
+
+        #question-text {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #555;
+            min-height: 40px;
+        }
+
+        /* 選択肢ボタンのコンテナ */
+        #options-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .option-button {
+            background-color: #e0eafb;
+            color: #4a90e2;
+            padding: 15px;
+            border: 2px solid #4a90e2;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s, transform 0.2s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px; 
+            text-align: center;
+        }
+
+        .option-button:hover {
+            background-color: #4a90e2;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* 結果表示エリア */
+        #result-area {
+            text-align: center;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border: 1px dashed #4CAF50;
+            border-radius: 10px;
+        }
+
+        #result-area h2 {
+            color: #4CAF50;
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        #result-type {
+            font-size: 1.8em; /* サイズを大きく */
+            font-weight: bold;
+            color: #d9534f;
+            margin-bottom: 20px;
+        }
+
+        #result-analysis {
+            font-size: 1.1em;
+            line-height: 1.8;
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        #result-summary {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #e0f2f1;
+            border-radius: 5px;
+        }
+
+        /* 進行状況バー */
+        #progress-bar {
+            height: 10px;
+            background-color: #ccc;
+            border-radius: 5px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <h1>直感でわかる性格診断パズル</h1>
+
+        <div id="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        <div id="quiz-area">
+            <div id="question-text">診断を開始します。「スタート」ボタンを押してください。</div>
+            
+            <div id="options-container">
+                <button id="start-button" class="option-button" onclick="startQuiz()">診断スタート！</button>
+            </div>
+        </div>
+
+        <div id="result-area" style="display: none;">
+            <h2>✨ 診断結果 ✨</h2>
+            <div id="result-type"></div>
+            <div id="result-summary"></div>
+            <div id="result-analysis"></div>
+            <button class="option-button" style="margin-top: 20px; width: 100%;" onclick="location.reload()">もう一度診断する</button>
+        </div>
+    </div>
+
+    <script>
+        // --- JavaScript: ロジック設定 ---
+
+        // DOM要素の取得
+        const quizArea = document.getElementById('quiz-area');
+        const resultArea = document.getElementById('result-area');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const progressFill = document.getElementById('progress-fill');
+        const resultType = document.getElementById('result-type');
+        const resultSummary = document.getElementById('result-summary');
+        const resultAnalysis = document.getElementById('result-analysis');
+
+        // 診断の質問データ (全20問)
+        // 各質問は以下の2軸のどちらかに影響を与えます。（各軸最大10点）
+        // S: Stability/Systematic (安定性/計画性) vs I: Intuition/Innovation (直感/革新性)
+        // A: Action/Assertive (行動力/断言的) vs R: Reflective/Reserved (内省的/控えめ)
+        const questions = [
+            { text: "Q1. 週末の計画を立てるとき、どちらに惹かれますか？", options: [{ text: "綿密なスケジュールを組む", value: "S" }, { text: "何も決めずに、その場の気分で動く", value: "I" }] },
+            { text: "Q2. 友人との会話では、どちらが多いですか？", options: [{ text: "積極的に発言し、議論をリードする", value: "A" }, { text: "聞き役に回り、発言は必要な時だけにする", value: "R" }] },
+            { text: "Q3. 新しい趣味を始めるとき、どちらに惹かれますか？", options: [{ text: "基礎をしっかり学べる入門書", value: "S" }, { text: "とりあえず始めて、自分で試行錯誤する", value: "I" }] },
+            { text: "Q4. トラブルが発生したとき、最初にすることは？", options: [{ text: "すぐに状況を把握し、対策を講じる", value: "A" }, { text: "少し立ち止まり、深く考える時間を持つ", value: "R" }] },
+            { text: "Q5. 仕事（作業）環境は、どちらが好みですか？", options: [{ text: "整理整頓され、視界にノイズがない", value: "S" }, { text: "アイデアや資料が広がり、活発な状態", value: "I" }] },
+            
+            // --- パズル（直感）要素 ---
+            { text: "Q6. 【直感パズル】「星、星、月、星、星、月...」次に続くと思う図形は？", options: [{ text: "星", value: "S" }, { text: "月", value: "I" }] }, // S: 規則性維持, I: 規則性の破綻を予期
+            { text: "Q7. 【直感パズル】「赤、青、青、赤、青、青...」次にくる色は？", options: [{ text: "赤", value: "S" }, { text: "青", value: "I" }] }, // S: 規則性維持, I: 規則性の破綻を予期
+            { text: "Q8. 【直感パズル】「円、四角、三角、円、四角、三角...」次にくる図形は？", options: [{ text: "円", value: "S" }, { text: "四角", value: "I" }] }, // S: 規則性維持, I: 規則性の破綻を予期
+            // --- パズル（直感）要素 終了 ---
+
+            { text: "Q9. 計画通りに進まないとき、気持ちはどうなりますか？", options: [{ text: "イライラするが、すぐに修正案を考える", value: "S" }, { text: "面白がる。新しい展開だと前向きに捉える", value: "I" }] },
+            { text: "Q10. 新しい人を評価するとき、どこを重視しますか？", options: [{ text: "過去の実績と具体的なスキル", value: "S" }, { text: "隠された可能性や潜在的な才能", value: "I" }] },
+            { text: "Q11. グループの決定で、あなたの役割は？", options: [{ text: "結論を出し、実行を促す", value: "A" }, { text: "メンバーの意見をまとめ、調和を保つ", value: "R" }] },
+            { text: "Q12. 感情的な対立が起きたとき、どちらを選びますか？", options: [{ text: "すぐに介入し、問題を解決する", value: "A" }, { text: "一歩引いて、冷静に状況を分析する", value: "R" }] },
+            { text: "Q13. 自分の意見に自信が持てないとき、どうしますか？", options: [{ text: "周囲の意見を参考にして、結論を出す", value: "S" }, { text: "自分の直感を信じ、独自路線を貫く", value: "I" }] },
+            { text: "Q14. 連絡手段として、どちらを好みますか？", options: [{ text: "電話や直接会話 (即時性)", value: "A" }, { text: "メールやチャット (文章での整理)", value: "R" }] },
+            { text: "Q15. 夢や目標を語るとき、どちらの視点が多いですか？", options: [{ text: "達成するための具体的なプロセス", value: "S" }, { text: "実現したときの感情や世界観", value: "I" }] },
+            { text: "Q16. 人前で意見を述べるのは得意ですか？", options: [{ text: "自信を持って、はっきりと話す", value: "A" }, { text: "準備ができていれば話せるが、できれば避けたい", value: "R" }] },
+            { text: "Q17. 締め切りが近いとき、集中力は？", options: [{ text: "高まり、計画通りに加速する", value: "S" }, { text: "プレッシャーを感じ、新しいアイデアに逃げる", value: "I" }] },
+            { text: "Q18. 友人に弱音を吐くのは得意ですか？", options: [{ text: "問題解決のために話すことはある", value: "A" }, { text: "あまり得意ではなく、自分で処理したい", value: "R" }] },
+            { text: "Q19. 自分の感情は、普段どうですか？", options: [{ text: "一定で、あまり波がない", value: "S" }, { text: "豊かで、状況によって大きく変化する", value: "I" }] },
+            { text: "Q20. あなたの行動の動機は、主にどちらですか？", options: [{ text: "目標達成と効率", value: "A" }, { text: "探求心と好奇心", value: "R" }] }
+        ];
+
+        let currentQuestionIndex = 0; // 現在の質問番号
+        let score = { S: 0, I: 0, A: 0, R: 0 }; // スコア集計オブジェクト (各軸最大10点)
+
+        // 性格タイプと分析結果の定義 (合計スコアに基づき、2軸で判定)
+        // 例: SスコアがIスコアより3点以上高ければ「S優位」と判定するなどのロジックを使用
+        const personalityTypes = {
+            // S (安定/計画) 優位 vs I (直感/革新) 優位
+            // A (行動/断言) 優位 vs R (内省/控えめ) 優位
+
+            // --- 安定/計画 (S) 優位 ---
+            "SA_strong": { type: "✨ 完璧主義の司令官 (The Organized Director)", analysis: "あなたは**計画性**と**行動力**が極めて高い、稀有なリーダータイプです。目標を設定したら、論理的かつ迅速に実行に移し、結果を出します。ただし、その厳格さが時に周囲にプレッシャーを与えることもあるため、柔軟な姿勢を意識すると、さらに多くの支持を得るでしょう。" },
+            "SR_strong": { type: "💎 緻密な戦略家 (The Detailed Strategist)", analysis: "あなたは**安定性**を基盤に、**深い内省**を重ねて行動する学者肌の戦略家です。感情に流されず、リスクを徹底的に分析してから動き出すため、下した判断は非常に正確です。チームでは、あなたの分析力と準備の周到さが、不可欠な強みとなります。" },
+            
+            // --- 直感/革新 (I) 優位 ---
+            "IA_strong": { type: "🚀 情熱のイノベーター (The Passionate Innovator)", analysis: "あなたは**直感**と**行動力**が爆発的に結びついた、変化の旗振り役です。新しいアイデアが次々と湧き出し、それを実行に移すエネルギーを持っています。飽きっぽさが玉に瑕ですが、あなたの発想力と実行力は、停滞した状況を打ち破る最大の武器です。" },
+            "IR_strong": { type: "🌌 孤高の夢想家 (The Deep Dreamer)", analysis: "あなたは**直感**を羅針盤に、**内省的**な世界を探求する夢想家です。日常の裏に隠された可能性を見抜く才能があり、独創的な思考プロセスを持っています。集団行動より一人を好みますが、あなたの生み出すアイデアは、世界を静かに、しかし確実に変えていく力を持っています。" },
+
+            // --- バランス型 ---
+            "SA_balance": { type: "⚖️ 実務的な推進者 (The Practical Mover)", analysis: "あなたは、安定を求めながらも行動に移す**実践者**です。計画は立てますが、状況に応じて修正を加える柔軟性を持っています。バランスの良さが魅力であり、多くのチームで中核的な役割を果たします。" },
+            "SR_balance": { type: "🕊️ 穏やかな探求者 (The Calm Explorer)", analysis: "あなたは、内省を重視しつつも、必要な場面では安定的な行動を選ぶ**調和型**です。急な変化は好みませんが、じっくり時間をかけて物事を探求し、知識を深めていくことを得意としています。人間関係においても、穏やかな信頼を築きます。" },
+            "IA_balance": { type: "⚡ 柔軟なアイデアマン (The Adaptive Idea Generator)", analysis: "あなたは、直感を活かしつつも、適切なタイミングで行動を起こす**機転の利く**タイプです。様々なアイデアを試し、失敗を恐れません。あなたの周りには常に活気があり、新しいチャレンジが絶えません。" },
+            "IR_balance": { type: "🎨 感受性豊かな表現者 (The Sensitive Creator)", analysis: "あなたは、内省を通じて直感的なひらめきを得る**感受性の高い**タイプです。芸術的なセンスや、人の気持ちを察する能力に優れています。独自の視点を持ちながらも、周囲の空気を読むことができる繊細さを持っています。" }
+        };
+
+        /**
+         * 診断開始ボタンをクリックしたときの処理
+         */
+        function startQuiz() {
+            score = { S: 0, I: 0, A: 0, R: 0 };
+            currentQuestionIndex = 0;
+            displayQuestion();
+        }
+
+        /**
+         * 質問と選択肢をDOMに表示する
+         */
+        function displayQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                showResult();
+                return;
+            }
+
+            const q = questions[currentQuestionIndex];
+            
+            questionText.textContent = `Q${currentQuestionIndex + 1}/${questions.length}. ${q.text}`;
+            
+            // 進行状況バーを更新 (20問なので、1問あたり5%進む)
+            const progress = (currentQuestionIndex / questions.length) * 100;
+            progressFill.style.width = `${progress}%`;
+            
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = option.text;
+                button.onclick = () => handleAnswer(option.value);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        /**
+         * ユーザーが回答を選択したときの処理
+         */
+        function handleAnswer(value) {
+            score[value] += 1;
+            
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        /**
+         * 最終的な結果を表示する
+         */
+        function showResult() {
+            progressFill.style.width = '100%';
+            
+            quizArea.style.display = 'none';
+            resultArea.style.display = 'block';
+
+            // 1. 各軸の勝者を決定 (S vs I, A vs R)
+            // 判定の強さ (優位性の度合い) を取得
+            const sScore = score.S;
+            const iScore = score.I;
+            const aScore = score.A;
+            const rScore = score.R;
+
+            const sDominant = sScore - iScore; // 正ならS優位、負ならI優位
+            const aDominant = aScore - rScore; // 正ならA優位、負ならR優位
+
+            // 2. 最終タイプキーの決定
+            let typeKey = '';
+
+            // S/I軸の判定 (合計10点中、差が3点以上ならstrong、それ以外はbalance)
+            if (sDominant >= 3) {
+                typeKey += 'S'; // S優位 (strong)
+            } else if (sDominant <= -3) {
+                typeKey += 'I'; // I優位 (strong)
+            } else {
+                // 差が2点以内の場合、優位性を問わず、スコアの高い方を優先し、'balance'に分類
+                typeKey += (sScore >= iScore ? 'S' : 'I');
+                typeKey += '_balance';
+            }
+
+            // A/R軸の判定 (合計10点中、差が3点以上ならstrong)
+            if (aDominant >= 3) {
+                typeKey += (typeKey.includes('_balance') ? 'A_balance' : 'A_strong');
+            } else if (aDominant <= -3) {
+                typeKey += (typeKey.includes('_balance') ? 'R_balance' : 'R_strong');
+            } else {
+                // 差が2点以内の場合、優位性を問わず、スコアの高い方を優先し、'balance'に分類
+                typeKey += (aScore >= rScore ? 'A_balance' : 'R_balance');
+            }
+
+            // 3. タイプキーを正規化 (balanceがついていない場合はstrongと見なす)
+            if (typeKey.length === 2) {
+                typeKey += '_strong';
+            }
+            // 複数の_balanceがつくことを防ぎ、4パターンの組み合わせ（x_strong, y_strong, x_balance, y_balance）でパターン数をカバー
+            const finalKey = typeKey.replace('_balanceA_balance', '_balance').replace('_balanceR_balance', '_balance');
+            
+            // 例外処理（全てのスコアが同点などの極端なケースをカバー）
+            const result = personalityTypes[finalKey] || personalityTypes['SA_balance'];
+
+            // 4. 結果をDOMに反映
+            resultType.textContent = result.type;
+
+            resultSummary.innerHTML = `
+                <p><strong>【安定/直感】軸:</strong> S (計画/安定) ${sScore}点 vs I (直感/革新) ${iScore}点</p>
+                <p><strong>【行動/内省】軸:</strong> A (行動/断言) ${aScore}点 vs R (内省/控えめ) ${rScore}点</p>
+            `;
+
+            resultAnalysis.innerHTML = `
+                <p><strong>【${result.type}】の分析:</strong></p>
+                <p>${result.analysis}</p>
+                <p>※本診断はエンターテイメント目的です。あなたの深層心理を探るヒントとしてお楽しみください。</p>
+            `;
+        }
+
+        // ページロード時に診断を実行 (初期表示用)
+        document.addEventListener('DOMContentLoaded', () => {
+             // 最初の画面に戻すため、スタートボタンのみ表示
+             quizArea.style.display = 'block';
+             resultArea.style.display = 'none';
+        });
+    </script>
+
+</body>
+</html>
